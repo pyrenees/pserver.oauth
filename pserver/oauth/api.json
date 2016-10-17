@@ -1,0 +1,14 @@
+{
+	"contenttypes": {
+		"plone.server.interfaces.IApplication": {
+            "endpoints": {
+                "@oauthgetcode": {
+                	"GET": {
+                        "factory": "pserver.oauth.oauth.getCredentials",
+                        "permission": "plone.GetOAuthGrant"
+                    }
+                }
+            }
+        }
+	}
+}

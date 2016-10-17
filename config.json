@@ -1,0 +1,11 @@
+{
+    "provides": "pserver.oauth.oauth.IOAuth",
+    "factory": "pserver.oauth.oauth.OAuth",
+    "settings": {
+        "server": "http://localhost/",
+        "jwt_secret": "secret",
+        "jwt_algorithm": "HS256",
+        "client_id": 11,
+        "client_password": "secret"
+    }
+}

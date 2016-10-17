@@ -1,0 +1,23 @@
+<configure xmlns="http://namespaces.zope.org/zope"
+           xmlns:plone="http://namespaces.plone.org/plone">
+
+  <include package="plone.server" file="meta.zcml" />
+
+  <plone:addon
+  		name="poauth"
+  		title="Plone OAuth Login"
+  		handler="pserver.oauth.install.POauthAddon" />
+
+  <permission
+      id="plone.GetOAuthGrant"
+      title="Get OAuth Grant Code"
+      />
+
+  <grant
+      permission="plone.GetOAuthGrant"
+      role="plone.Anonymous"
+      />
+
+  <plone:api file="api.json" />
+
+</configure>
