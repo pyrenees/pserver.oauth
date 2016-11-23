@@ -4,7 +4,7 @@
             "endpoints": {
                 "@oauthgetcode": {
                 	"GET": {
-                        "factory": "pserver.oauth.oauth.getCredentials",
+                        "factory": "pserver.oauth.oauth.GetCredentials",
                         "permission": "plone.GetOAuthGrant"
                     }
                 }

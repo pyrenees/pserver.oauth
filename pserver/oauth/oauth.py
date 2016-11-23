@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 from calendar import timegm
-from collections import OrderedDict
 from datetime import datetime
 
 import aiohttp
@@ -9,13 +8,12 @@ import asyncio
 import jwt
 from plone.server.api.service import Service
 from plone.server.async import IAsyncUtility
-from plone.server.auth.participation import AnonymousUser
-from plone.server.auth.participation import PloneUser
+from plone.server.auth.users import PloneUser
 from zope.component import getUtility
-from zope.interface.interfaces import ComponentLookupError
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import Deny
 from zope.securitypolicy.interfaces import Unset
+from plone.server import app_settings
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +26,7 @@ NON_IAT_VERIFY = {
 
 class IOAuth(IAsyncUtility):
     """Marker interface for OAuth Utility."""
+
     pass
 
 
@@ -51,8 +50,6 @@ class OAuth(object):
     def __init__(self, settings):
         self.settings = settings
         self._server = settings['server']
-        self._jwt_secret = settings['jwt_secret']
-        self._jwt_algorithm = settings['jwt_algorithm']
         self._client_id = settings['client_id']
         self._client_password = settings['client_password']
 
@@ -66,6 +63,9 @@ class OAuth(object):
             expiration = self._service_token['exp']
             time_to_sleep = expiration - now
             await asyncio.sleep(time_to_sleep)
+
+    async def finalize(self, app=None):
+        pass
 
     async def auth_code(self, scope, client_id):
         result = await self.call_auth('getAuthCode', {
@@ -125,14 +125,14 @@ class OAuth(object):
                         try:
                             result = jwt.decode(
                                 await resp.text(),
-                                self._jwt_secret,
-                                algorithms=[self._jwt_algorithm])
+                                app_settings['jwt']['secret'],
+                                algorithms=[app_settings['jwt']['algorithm']])
                         except jwt.InvalidIssuedAtError:
                             logger.error('Error on Time at OAuth Server')
                             result = jwt.decode(
                                 await resp.text(),
-                                self._jwt_secret,
-                                algorithms=[self._jwt_algorithm],
+                                app_settings['jwt']['secret'],
+                                algorithms=[app_settings['jwt']['algorithm']],
                                 options=NON_IAT_VERIFY)
                     else:
                         logger.error(
@@ -148,14 +148,14 @@ class OAuth(object):
                         try:
                             result = jwt.decode(
                                 await resp.text(),
-                                self._jwt_secret,
-                                algorithms=[self._jwt_algorithm])
+                                app_settings['jwt']['secret'],
+                                algorithms=[app_settings['jwt']['algorithm']])
                         except jwt.InvalidIssuedAtError:
                             logger.error('Error on Time at OAuth Server')
                             result = jwt.decode(
                                 await resp.text(),
-                                self._jwt_secret,
-                                algorithms=[self._jwt_algorithm],
+                                app_settings['jwt']['secret'],
+                                algorithms=[app_settings['jwt']['algorithm']],
                                 options=NON_IAT_VERIFY)
                     else:
                         logger.error(
@@ -170,93 +170,67 @@ class OAuth(object):
             return result
 
 
-class PloneJWTExtraction(object):
-    """User jwt token extraction."""
+class OAuthJWTValidator(object):
+
+    for_validators = ('bearer',)
 
     def __init__(self, request):
-        """Extraction pluggin that sets initial cache value on request."""
         self.request = request
+
+    async def validate(self, token):
+        """Return the user from the token."""
+        if token.get('type') != 'bearer':
+            return False
+
+        if '.' not in token.get('token', ''):
+            # quick way to check if actually might be jwt
+            return False
+
         try:
-            self.config = getUtility(IOAuth)
-        except ComponentLookupError:
-            logger.error('No IOAuth Utility')
-            self.config = None
-        if not hasattr(self.request, '_cache_credentials'):
-            self.request._cache_credentials = {}
+            validated_jwt = jwt.decode(
+                token['token'],
+                app_settings['jwt']['secret'],
+                algorithms=[app_settings['jwt']['algorithm']])
 
-    async def extract_user(self):
-        """Extract the Authorization header with bearer and decodes on jwt."""
-        header_auth = self.request.headers.get('AUTHORIZATION')
-        creds = {}
-        if header_auth is not None and self.config is not None:
-            schema, _, encoded_token = header_auth.partition(' ')
-            if schema.lower() == 'bearer':
-                token = encoded_token.encode('ascii')
-                try:
-                    creds['jwt'] = jwt.decode(
-                        token,
-                        self.config._jwt_secret,
-                        algorithms=[self.config._jwt_algorithm])
-                except jwt.exceptions.DecodeError:
-                    logger.warn('Invalid JWT token')
+            token['id'] = validated_jwt['login']
 
-                if 'jwt' in creds:
-                    oauth_utility = getUtility(IOAuth)
-                    validation = await oauth_utility.validate_token(
-                        self.request, creds['jwt']['token'])
-                    if validation is not None and \
-                            validation == creds['jwt']['login']:
-                        # We validate that the actual token belongs to the same
-                        # as the user on oauth
-                        creds['user'] = validation
+            oauth_utility = getUtility(IOAuth)
 
-        self.request._cache_credentials.update(creds)
-        return creds
+            # Enable extra validation
+            # validation = await oauth_utility.validate_token(
+            #    self.request, validated_jwt['token'])
+            # if validation is not None and \
+            #        validation == validated_jwt['login']:
+            #    # We validate that the actual token belongs to the same
+            #    # as the user on oauth
 
+            result = await oauth_utility.call_auth(
+                'getUser',
+                params={
+                    'service_token': await oauth_utility.service_token,
+                    'user_token': validated_jwt['token'],
+                    'scope': self.request._site_id,
+                    'user': validated_jwt['login']
+                }
+            )
+            if result:
+                user = OAuthPloneUser(self.request, result)
+                user.name = validated_jwt['name']
+                user.token = validated_jwt['token']
+                if user and user.id == token['id']:
+                    return user
 
-class OAuthPloneUserFactory(object):
+        except jwt.exceptions.DecodeError:
+            pass
 
-    def __init__(self, request):
-        self.request = request
-
-    async def create_user(self):
-        if 'user' not in self.request._cache_credentials:
-            user = AnonymousUser(self.request)
-        else:
-            try:
-                user = OAuthPloneUser(self.request)
-                await user.get_info()
-            except KeyError:
-                user = AnonymousUser(self.request)
-        self.request._cache_user = user
+        return False
 
 
 class OAuthPloneUser(PloneUser):
 
-    def __init__(self, request):
+    def __init__(self, request, data):
         super(OAuthPloneUser, self).__init__(request)
-        self.token = self.request._cache_credentials['jwt']
-        self.login = self.request._cache_credentials['user']
-        self.id = self.login
-        self._properties = OrderedDict()
-
-    async def get_info(self):
-        oauth_utility = getUtility(IOAuth)
-
-        result = await oauth_utility.call_auth(
-            'getUser',
-            params={
-                'service_token': await oauth_utility.service_token,
-                'user_token': self.token['token'],
-                'scope': self.request.site.id,
-                'user': self.login
-            }
-        )
-
-        if not result:
-            raise KeyError('Not a plone.oauth User')
-
-        self._init_data(result)
+        self._init_data(data)
 
     def _init_data(self, user_data):
         self._roles = user_data['result']['roles']
@@ -269,14 +243,13 @@ class OAuthPloneUser(PloneUser):
                 self._roles[key] = Unset
         self._groups = [key for key, value
                         in user_data['result']['groups'].items() if value]
-        self.name = user_data['result']['name']
-        logger.error(self._roles)
+        self.id = user_data['result']['name']
         if len(self._roles) == 0:
             logger.error('User without roles in this scope')
             raise KeyError('Plone OAuth User has no roles in this Scope')
 
 
-class getCredentials(Service):
+class GetCredentials(Service):
 
     async def __call__(self):
         oauth_utility = getUtility(IOAuth)
