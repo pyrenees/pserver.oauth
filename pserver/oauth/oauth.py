@@ -204,12 +204,14 @@ class OAuthJWTValidator(object):
             #    # We validate that the actual token belongs to the same
             #    # as the user on oauth
 
+            scope = self.request._site_id if hasattr(self.request, '_site_id') else 'root'
+
             result = await oauth_utility.call_auth(
                 'getUser',
                 params={
                     'service_token': await oauth_utility.service_token,
                     'user_token': validated_jwt['token'],
-                    'scope': self.request._site_id,
+                    'scope': scope,
                     'user': validated_jwt['login']
                 }
             )
