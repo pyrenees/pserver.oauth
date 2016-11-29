@@ -180,11 +180,11 @@ class OAuthJWTValidator(object):
     async def validate(self, token):
         """Return the user from the token."""
         if token.get('type') != 'bearer':
-            return False
+            return None
 
         if '.' not in token.get('token', ''):
             # quick way to check if actually might be jwt
-            return False
+            return None
 
         try:
             validated_jwt = jwt.decode(
@@ -225,7 +225,7 @@ class OAuthJWTValidator(object):
         except jwt.exceptions.DecodeError:
             pass
 
-        return False
+        return None
 
 
 class OAuthPloneUser(PloneUser):
