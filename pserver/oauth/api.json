@@ -9,6 +9,16 @@
                     }
                 }
             }
+        },
+        "plone.server.interfaces.ISite": {
+            "endpoints": {
+                "@oauthgetcode": {
+                    "GET": {
+                        "factory": "pserver.oauth.oauth.GetCredentials",
+                        "permission": "plone.GetOAuthGrant"
+                    }
+                }
+            }
         }
 	}
 }

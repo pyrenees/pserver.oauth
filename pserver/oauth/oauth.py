@@ -260,8 +260,8 @@ class GetCredentials(Service):
         else:
             client_id = oauth_utility._client_id
 
-        if hasattr(self.request, 'site'):
-            scope = self.request.site.id
+        if hasattr(self.request, '_site_id'):
+            scope = self.request._site_id
         else:
             scope = self.request.GET['scope']
 
