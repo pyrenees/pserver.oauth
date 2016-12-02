@@ -13,7 +13,7 @@
         "plone.server.interfaces.ISite": {
             "endpoints": {
                 "@oauthgetcode": {
-                    "GET": {
+                    "OPTIONS": {
                         "factory": "pserver.oauth.oauth.GetCredentials",
                         "permission": "plone.GetOAuthGrant"
                     }
