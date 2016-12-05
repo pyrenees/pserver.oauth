@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from plone.server.testing import PloneServerBaseLayer
+from plone.server.testing import PloneBaseLayer
 import unittest
 
 
 OAUTH_UTILITY_CONFIG = {
-    'provides': 'plone.server.auth.oauth.IOAuth',
-    'factory': 'plone.server.auth.oauth.OAuth',
+    'provides': 'pserver.oauth.oauth.IOAuth',
+    'factory': 'pserver.oauth.oauth.OAuth',
     'settings': {
         'server': 'http://localhost/',
         'jwt_secret': 'secret',
@@ -17,11 +17,19 @@ OAUTH_UTILITY_CONFIG = {
 }
 
 
-class PloneOAuthLayer(PloneServerBaseLayer):
+class PloneOAuthLayer(PloneBaseLayer):
 
     @classmethod
     def setUp(cls):
         cls.app.add_async_utility(OAUTH_UTILITY_CONFIG)
+
+    @classmethod
+    def testSetUp(cls):
+        pass
+
+    @classmethod
+    def testTearDown(cls):
+        pass
 
     @classmethod
     def tearDown(cls):

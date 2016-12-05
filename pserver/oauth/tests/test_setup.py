@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from plone.server.auth.oauth import IOAuth
-from plone.server.testing import PloneOAuthServerTestCase
+from pserver.oauth.oauth import IOAuth
+from pserver.oauth.testing import PloneOAuthServerTestCase
 from zope.component import getUtility
 
 

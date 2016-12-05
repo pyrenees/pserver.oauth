@@ -14,6 +14,7 @@ from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import Deny
 from zope.securitypolicy.interfaces import Unset
 from plone.server import app_settings
+from plone.server.api.content import DefaultOPTIONS
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +255,26 @@ class OAuthPloneUser(PloneUser):
 class GetCredentials(Service):
 
     async def __call__(self):
+        oauth_utility = getUtility(IOAuth)
+        if 'client_id' in self.request.GET:
+            client_id = self.request.GET['client_id']
+        else:
+            client_id = oauth_utility._client_id
+
+        if hasattr(self.request, '_site_id'):
+            scope = self.request._site_id
+        else:
+            scope = self.request.GET['scope']
+
+        result = await oauth_utility.auth_code([scope], client_id)
+        return {
+            'auth_code': result
+        }
+
+
+class OptionsGetCredentials(DefaultOPTIONS):
+
+    async def render(self):
         oauth_utility = getUtility(IOAuth)
         if 'client_id' in self.request.GET:
             client_id = self.request.GET['client_id']
