@@ -15,7 +15,7 @@ from zope.securitypolicy.interfaces import Deny
 from zope.securitypolicy.interfaces import Unset
 from plone.server import app_settings
 from plone.server.api.content import DefaultOPTIONS
-from plone.server import app_settings
+from plone.server.browser import Response
 
 
 logger = logging.getLogger(__name__)
