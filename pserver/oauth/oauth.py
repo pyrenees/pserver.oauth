@@ -15,6 +15,7 @@ from zope.securitypolicy.interfaces import Deny
 from zope.securitypolicy.interfaces import Unset
 from plone.server import app_settings
 from plone.server.api.content import DefaultOPTIONS
+from plone.server import app_settings
 
 
 logger = logging.getLogger(__name__)
@@ -274,7 +275,14 @@ class GetCredentials(Service):
 
 class OptionsGetCredentials(DefaultOPTIONS):
 
-    async def render(self):
+    async def __call__(self):
+        headers = {}
+        headers['Access-Control-Allow-Headers'] = ','.join(
+            app_settings['cors']['allow_headers'])
+        headers['Access-Control-Allow-Methods'] = ','.join(
+            app_settings['cors']['allow_methods'])
+        headers['Access-Control-Max-Age'] = str(app_settings['cors']['max_age'])
+
         oauth_utility = getUtility(IOAuth)
         if 'client_id' in self.request.GET:
             client_id = self.request.GET['client_id']
@@ -287,6 +295,7 @@ class OptionsGetCredentials(DefaultOPTIONS):
             scope = self.request.GET['scope']
 
         result = await oauth_utility.auth_code([scope], client_id)
-        return {
+        resp = {
             'auth_code': result
         }
+        return Response(response=resp, headers=headers, status=200)
