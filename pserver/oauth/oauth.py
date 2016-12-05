@@ -282,6 +282,11 @@ class OptionsGetCredentials(DefaultOPTIONS):
         headers['Access-Control-Allow-Methods'] = ','.join(
             app_settings['cors']['allow_methods'])
         headers['Access-Control-Max-Age'] = str(app_settings['cors']['max_age'])
+        headers['Access-Control-Allow-Origin'] = ','.join(
+            app_settings['cors']['allow_origin'])
+        headers['Access-Control-Allow-Credentials'] = 'True'
+        headers['Access-Control-Expose-Headers'] = \
+            ', '.join(app_settings['cors']['allow_headers'])
 
         oauth_utility = getUtility(IOAuth)
         if 'client_id' in self.request.GET:
