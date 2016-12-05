@@ -277,8 +277,8 @@ class OptionsGetCredentials(DefaultOPTIONS):
 
     async def __call__(self):
         headers = {}
-        headers['Access-Control-Allow-Headers'] = ','.join(
-            app_settings['cors']['allow_headers'])
+        allowed_headers = ['Content-Type'] + app_settings['cors']['allow_headers']
+        headers['Access-Control-Allow-Headers'] = ','.join(allowed_headers)
         headers['Access-Control-Allow-Methods'] = ','.join(
             app_settings['cors']['allow_methods'])
         headers['Access-Control-Max-Age'] = str(app_settings['cors']['max_age'])
