@@ -35,6 +35,7 @@ class IOAuth(IAsyncUtility):
 REST_API = {
     'getAuthCode': ['POST', 'get_authorization_code'],
     'getAuthToken': ['POST', 'get_auth_token'],
+    'getServiceToken': ['POST', 'get_service_token'],
     'searchUser': ['POST', 'search_user'],
     'validToken': ['POST', 'valid_token'],
     'getUser': ['POST', 'get_user'],
@@ -87,7 +88,7 @@ class OAuth(object):
             if self._service_token['exp'] > now:
                 return self._service_token['service_token']
         logger.info('SERVICE TOKEN OBTAIN')
-        result = await self.call_auth('getAuthToken', {
+        result = await self.call_auth('getServiceToken', {
             'client_id': self._client_id,
             'client_secret': self._client_password,
             'grant_type': 'service'
