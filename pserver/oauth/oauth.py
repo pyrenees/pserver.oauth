@@ -115,7 +115,7 @@ class OAuth(object):
                 return None
         return None
 
-    async def call_auth(self, call, params, future=None, **kw):
+    async def call_auth(self, call, params, headers={}, future=None, **kw):
         method, url = REST_API[call]
 
         result = None
@@ -123,7 +123,9 @@ class OAuth(object):
             if method == 'GET':
                 logger.info('GET ' + self._server + url + str(params))
                 async with session.get(
-                        self._server + url, params=params) as resp:
+                        self._server + url,
+                        params=params,
+                        headers=headers) as resp:
                     if resp.status == 200:
                         try:
                             result = jwt.decode(
@@ -146,7 +148,9 @@ class OAuth(object):
             elif method == 'POST':
                 logger.info('POST ' + self._server + url + str(params))
                 async with session.post(
-                        self._server + url, data=params) as resp:
+                        self._server + url,
+                        data=params,
+                        headers=headers) as resp:
                     if resp.status == 200:
                         try:
                             result = jwt.decode(
@@ -216,6 +220,9 @@ class OAuthJWTValidator(object):
                     'user_token': validated_jwt['token'],
                     'scope': scope,
                     'user': validated_jwt['login']
+                },
+                headers={
+                    'Authorization': token['token']
                 }
             )
             if result:
