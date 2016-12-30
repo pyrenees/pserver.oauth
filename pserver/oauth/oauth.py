@@ -33,17 +33,17 @@ class IOAuth(IAsyncUtility):
 
 
 REST_API = {
-    'getAuthCode': ['POST', 'get_authorization_code'],
-    'getAuthToken': ['POST', 'get_auth_token'],
-    'getServiceToken': ['POST', 'get_service_token'],
-    'searchUser': ['POST', 'search_user'],
-    'validToken': ['POST', 'valid_token'],
-    'getUser': ['POST', 'get_user'],
-    'getGroup': ['POST', 'get_group'],
-    'getScopeUsers': ['GET', 'get_users'],
-    'getScopes': ['GET', 'get_scopes'],
-    'grantGlobalRoles': ['POST', 'grant_scope_roles'],
-    'revokeGlobalRoles': ['POST', 'deny_scope_roles'],
+    'getAuthCode': ['POST', 'get_authorization_code', True],
+    'getAuthToken': ['POST', 'get_auth_token', True],
+    'getServiceToken': ['POST', 'get_service_token', True],
+    'searchUser': ['POST', 'search_user', False],
+    'validToken': ['POST', 'valid_token', True],
+    'getUser': ['POST', 'get_user', False],
+    'getGroup': ['POST', 'get_group', False],
+    'getScopeUsers': ['GET', 'get_users', False],
+    'getScopes': ['GET', 'get_scopes', False],
+    'grantGlobalRoles': ['POST', 'grant_scope_roles', False],
+    'revokeGlobalRoles': ['POST', 'deny_scope_roles', False],
 }
 
 
@@ -116,7 +116,7 @@ class OAuth(object):
         return None
 
     async def call_auth(self, call, params, headers={}, future=None, **kw):
-        method, url = REST_API[call]
+        method, url, needs_decode = REST_API[call]
 
         result = None
         with aiohttp.ClientSession() as session:
@@ -152,18 +152,21 @@ class OAuth(object):
                         data=params,
                         headers=headers) as resp:
                     if resp.status == 200:
-                        try:
-                            result = jwt.decode(
-                                await resp.text(),
-                                app_settings['jwt']['secret'],
-                                algorithms=[app_settings['jwt']['algorithm']])
-                        except jwt.InvalidIssuedAtError:
-                            logger.error('Error on Time at OAuth Server')
-                            result = jwt.decode(
-                                await resp.text(),
-                                app_settings['jwt']['secret'],
-                                algorithms=[app_settings['jwt']['algorithm']],
-                                options=NON_IAT_VERIFY)
+                        if needs_decode:
+                            try:
+                                result = jwt.decode(
+                                    await resp.text(),
+                                    app_settings['jwt']['secret'],
+                                    algorithms=[app_settings['jwt']['algorithm']])
+                            except jwt.InvalidIssuedAtError:
+                                logger.error('Error on Time at OAuth Server')
+                                result = jwt.decode(
+                                    await resp.text(),
+                                    app_settings['jwt']['secret'],
+                                    algorithms=[app_settings['jwt']['algorithm']],
+                                    options=NON_IAT_VERIFY)
+                        else:
+                            result = await resp.json()
                     else:
                         logger.error(
                             'OAUTH SERVER ERROR %d %s' % (
@@ -217,12 +220,12 @@ class OAuthJWTValidator(object):
                 'getUser',
                 params={
                     'service_token': await oauth_utility.service_token,
-                    'user_token': validated_jwt['token'],
+                    # 'user_token': validated_jwt['token'],
                     'scope': scope,
                     'user': validated_jwt['login']
                 },
                 headers={
-                    'Authorization': token['token']
+                    'Authorization': 'Bearer ' + token['token']
                 }
             )
             if result:
@@ -245,17 +248,12 @@ class OAuthPloneUser(PloneUser):
         self._init_data(data)
 
     def _init_data(self, user_data):
-        self._roles = user_data['result']['roles']
-        for key, value in self._roles.items():
-            if value == 1:
-                self._roles[key] = Allow
-            elif value == 0:
-                self._roles[key] = Deny
-            else:
-                self._roles[key] = Unset
-        self._groups = [key for key, value
-                        in user_data['result']['groups'].items() if value]
-        self.id = user_data['result']['name']
+        self._roles = {}
+        for key in user_data['roles']:
+            self._roles[key] = Allow
+        self._groups = [key for key
+                        in user_data['groups']]
+        self.id = user_data['mail']
         if len(self._roles) == 0:
             logger.error('User without roles in this scope')
             raise KeyError('Plone OAuth User has no roles in this Scope')
