@@ -6,6 +6,7 @@ from datetime import datetime
 import aiohttp
 import asyncio
 import jwt
+import time
 from plone.server.api.service import Service
 from plone.server.async import IAsyncUtility
 from plone.server.auth.users import PloneUser
@@ -16,6 +17,7 @@ from zope.securitypolicy.interfaces import Unset
 from plone.server import app_settings
 from plone.server.api.content import DefaultOPTIONS
 from plone.server.browser import Response
+from aiohttp.web_exceptions import HTTPUnauthorized
 
 
 logger = logging.getLogger(__name__)
@@ -197,10 +199,14 @@ class OAuthJWTValidator(object):
             return None
 
         try:
-            validated_jwt = jwt.decode(
-                token['token'],
-                app_settings['jwt']['secret'],
-                algorithms=[app_settings['jwt']['algorithm']])
+            try:
+                validated_jwt = jwt.decode(
+                    token['token'],
+                    app_settings['jwt']['secret'],
+                    algorithms=[app_settings['jwt']['algorithm']])
+            except jwt.exceptions.ExpiredSignatureError:
+                logger.warn("Token Expired")
+                raise HTTPUnauthorized()
 
             token['id'] = validated_jwt['login']
 
@@ -215,7 +221,7 @@ class OAuthJWTValidator(object):
             #    # as the user on oauth
 
             scope = self.request._site_id if hasattr(self.request, '_site_id') else 'root'
-
+            t1 = time.time()
             result = await oauth_utility.call_auth(
                 'getUser',
                 params={
@@ -228,6 +234,8 @@ class OAuthJWTValidator(object):
                     'Authorization': 'Bearer ' + token['token']
                 }
             )
+            tdif = t1 - time.time()
+            print('Time %f' % tdif)
             if result:
                 user = OAuthPloneUser(self.request, result)
                 user.name = validated_jwt['name']
