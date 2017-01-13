@@ -123,7 +123,7 @@ class OAuth(object):
         result = None
         with aiohttp.ClientSession() as session:
             if method == 'GET':
-                logger.info('GET ' + self._server + url + str(params))
+                logger.debug('GET ' + self._server + url)
                 async with session.get(
                         self._server + url,
                         params=params,
@@ -148,7 +148,7 @@ class OAuth(object):
                                 await resp.text()))
                     await resp.release()
             elif method == 'POST':
-                logger.info('POST ' + self._server + url + str(params))
+                logger.debug('POST ' + self._server + url)
                 async with session.post(
                         self._server + url,
                         data=params,
