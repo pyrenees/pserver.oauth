@@ -20,7 +20,7 @@ from plone.server.browser import Response
 from aiohttp.web_exceptions import HTTPUnauthorized
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('pserver.oauth')
 
 # Asyncio Utility
 NON_IAT_VERIFY = {
