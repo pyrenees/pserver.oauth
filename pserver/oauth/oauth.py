@@ -11,13 +11,14 @@ from plone.server.api.service import Service
 from plone.server.async import IAsyncUtility
 from plone.server.auth.users import PloneUser
 from zope.component import getUtility
-from zope.securitypolicy.interfaces import Allow
-from zope.securitypolicy.interfaces import Deny
-from zope.securitypolicy.interfaces import Unset
+from plone.server.interfaces import Allow
 from plone.server import app_settings
 from plone.server.api.content import DefaultOPTIONS
 from plone.server.browser import Response
 from aiohttp.web_exceptions import HTTPUnauthorized
+from plone.server import configure
+from plone.server.interfaces import IApplication
+from plone.server.interfaces import ISite
 
 
 logger = logging.getLogger('pserver.oauth')
@@ -267,6 +268,8 @@ class OAuthPloneUser(PloneUser):
             raise KeyError('Plone OAuth User has no roles in this Scope')
 
 
+@configure.service(context=IApplication, name='@oauthgetcode', method='GET',
+                   permission='plone.GetOAuthGrant')
 class GetCredentials(Service):
 
     async def __call__(self):
@@ -287,6 +290,8 @@ class GetCredentials(Service):
         }
 
 
+@configure.service(context=ISite, name='@oauthgetcode', method='OPTIONS',
+                   permission='plone.GetOAuthGrant')
 class OptionsGetCredentials(DefaultOPTIONS):
 
     async def __call__(self):
