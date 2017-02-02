@@ -19,6 +19,7 @@ from aiohttp.web_exceptions import HTTPUnauthorized
 from plone.server import configure
 from plone.server.interfaces import IApplication
 from plone.server.interfaces import ISite
+from plone.server.interfaces import IResource
 
 
 logger = logging.getLogger('pserver.oauth')
@@ -289,6 +290,29 @@ class GetCredentials(Service):
             'auth_code': result
         }
 
+
+@configure.service(context=ISite, name='@oauthgetcode', method='GET',
+                   permission='plone.GetOAuthGrant')
+class GetCredentials(Service):
+
+    __allow_access__ = True
+
+    async def __call__(self):
+        oauth_utility = getUtility(IOAuth)
+        if 'client_id' in self.request.GET:
+            client_id = self.request.GET['client_id']
+        else:
+            client_id = oauth_utility._client_id
+
+        if hasattr(self.request, '_site_id'):
+            scope = self.request._site_id
+        else:
+            scope = self.request.GET['scope']
+
+        result = await oauth_utility.auth_code([scope], client_id)
+        return {
+            'auth_code': result
+        }
 
 @configure.service(context=ISite, name='@oauthgetcode', method='OPTIONS',
                    permission='plone.GetOAuthGrant')
