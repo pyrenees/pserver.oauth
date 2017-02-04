@@ -48,6 +48,7 @@ REST_API = {
     'getScopes': ['GET', 'get_scopes', False],
     'grantGlobalRoles': ['POST', 'grant_scope_roles', False],
     'revokeGlobalRoles': ['POST', 'deny_scope_roles', False],
+    'searchUsers': ['POST', 'search_user', False]
 }
 
 
@@ -256,6 +257,7 @@ class OAuthPloneUser(PloneUser):
     def __init__(self, request, data):
         super(OAuthPloneUser, self).__init__(request)
         self._init_data(data)
+        self._properties = {}
 
     def _init_data(self, user_data):
         self._roles = {}
