@@ -238,7 +238,7 @@ class OAuthJWTValidator(object):
                 }
             )
             tdif = t1 - time.time()
-            print('Time %f' % tdif)
+            print('Time OAUTH %f' % tdif)
             if result:
                 user = OAuthPloneUser(self.request, result)
                 user.name = validated_jwt['name']
