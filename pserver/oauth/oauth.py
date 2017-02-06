@@ -44,7 +44,7 @@ REST_API = {
     'validToken': ['POST', 'valid_token', True],
     'getUser': ['POST', 'get_user', False],
     'getGroup': ['POST', 'get_group', False],
-    'getScopeUsers': ['GET', 'get_users', False],
+    'getScopeUsers': ['POST', 'get_users', False],
     'getScopes': ['GET', 'get_scopes', False],
     'grantGlobalRoles': ['POST', 'grant_scope_roles', False],
     'revokeGlobalRoles': ['POST', 'deny_scope_roles', False],
@@ -102,6 +102,22 @@ class OAuth(object):
             self._service_token = result
             return self._service_token['service_token']
         return None
+
+    async def getUsers(self, request):
+        scope = request.site.id
+        header = {
+            'Authorization': request.headers['Authorization']
+        }
+
+        result = await self.call_auth(
+            'getScopeUsers',
+            params={
+                'service_token': self._service_token['service_token'],
+                'scope': scope
+            },
+            headers = header
+        )
+        return result
 
     async def validate_token(self, request, token):
         scope = request.site.id
