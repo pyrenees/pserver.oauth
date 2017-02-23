@@ -119,6 +119,28 @@ class OAuth(object):
         )
         return result
 
+    async def searchUsers(self, request, page=0, num_x_page=30, term=''):
+        scope = request.site.id
+        header = {
+            'Authorization': request.headers['Authorization']
+        }
+
+        payload = {
+            'criteria': '{"mail": "' + term + '*"}',
+            'exact_match': False,
+            'attrs': '["mail"]',
+            'page': page,
+            'num_x_page': num_x_page,
+            'service_token': self._service_token['service_token'],
+            'scope': scope
+        }
+        result = await self.call_auth(
+            'searchUsers',
+            params=payload,
+            headers=header
+        )
+        return result
+
     async def validate_token(self, request, token):
         scope = request.site.id
         result = await self.call_auth(
