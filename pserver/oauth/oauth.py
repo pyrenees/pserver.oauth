@@ -162,7 +162,7 @@ class OAuth(object):
         method, url, needs_decode = REST_API[call]
 
         result = None
-        with aiohttp.ClientSession() as session:
+        with aiohttp.ClientSession(timeout=30) as session:
             if method == 'GET':
                 logger.debug('GET ' + self._server + url)
                 async with session.get(
