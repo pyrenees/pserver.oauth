@@ -162,13 +162,14 @@ class OAuth(object):
         method, url, needs_decode = REST_API[call]
 
         result = None
-        with aiohttp.ClientSession(timeout=30) as session:
+        with aiohttp.ClientSession() as session:
             if method == 'GET':
                 logger.debug('GET ' + self._server + url)
                 async with session.get(
                         self._server + url,
                         params=params,
-                        headers=headers) as resp:
+                        headers=headers,
+                        timeout=30) as resp:
                     if resp.status == 200:
                         try:
                             result = jwt.decode(
@@ -193,7 +194,8 @@ class OAuth(object):
                 async with session.post(
                         self._server + url,
                         data=params,
-                        headers=headers) as resp:
+                        headers=headers,
+                        timeout=30) as resp:
                     if resp.status == 200:
                         if needs_decode:
                             try:
