@@ -250,6 +250,13 @@ class OAuthJWTValidator(object):
             except jwt.exceptions.ExpiredSignatureError:
                 logger.warn("Token Expired")
                 raise HTTPUnauthorized()
+            except jwt.InvalidIssuedAtError:
+                logger.warn("Back to the future")
+                validated_jwt = jwt.decode(
+                    token['token'],
+                    app_settings['jwt']['secret'],
+                    algorithms=[app_settings['jwt']['algorithm']],
+                    options=NON_IAT_VERIFY)
 
             token['id'] = validated_jwt['login']
 
